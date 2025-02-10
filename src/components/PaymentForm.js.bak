@@ -1,0 +1,111 @@
+import React, { useState } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+import {
+  CardElement,
+  Elements,
+  useStripe,
+  useElements,
+} from '@stripe/stripe-js/pure';
+import { Button, Box, Typography, Alert } from '@mui/material';
+
+const stripePromise = loadStripe('your_publishable_key'); // Replace with your Stripe key
+
+function CheckoutForm({ orderId, amount, onSuccess }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [error, setError] = useState(null);
+  const [processing, setProcessing] = useState(false);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setProcessing(true);
+
+    if (!stripe || !elements) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId, amount }),
+      });
+
+      const data = await response.json();
+
+      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
+        data.clientSecret,
+        {
+          payment_method: {
+            card: elements.getElement(CardElement),
+          },
+        }
+      );
+
+      if (stripeError) {
+        setError(stripeError.message);
+      } else {
+        onSuccess(paymentIntent);
+      }
+    } catch (err) {
+      setError('Payment failed. Please try again.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <Box sx={{ mb: 2 }}>
+        <CardElement
+          options={{
+            style: {
+              base: {
+                fontSize: '16px',
+                color: '#424770',
+                '::placeholder': {
+                  color: '#aab7c4',
+                },
+              },
+              invalid: {
+                color: '#9e2146',
+              },
+            },
+          }}
+        />
+      </Box>
+      
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      <Button
+        type="submit"
+        variant="contained"
+        disabled={!stripe || processing}
+        fullWidth
+      >
+        {processing ? 'Processing...' : `Pay $${amount.toFixed(2)}`}
+      </Button>
+    </form>
+  );
+}
+
+function PaymentForm({ orderId, amount, onSuccess }) {
+  return (
+    <Elements stripe={stripePromise}>
+      <Box sx={{ maxWidth: 400, mx: 'auto', p: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Payment Details
+        </Typography>
+        <CheckoutForm orderId={orderId} amount={amount} onSuccess={onSuccess} />
+      </Box>
+    </Elements>
+  );
+}
+
+export default PaymentForm; 
