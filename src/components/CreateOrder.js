@@ -82,14 +82,25 @@ function CreateOrder() {
 
   return (
     <Container maxWidth="sm">
-      <Box sx={{ mt: 4 }}>
+      <Box sx={{ 
+        mt: 4,
+        '& .MuiPaper-root': {
+          background: 'rgba(19, 47, 76, 0.4)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.1)',
+        }
+      }}>
         <Typography variant="h4" gutterBottom>
           Ladle & Leaf - Order
         </Typography>
         <Typography variant="subtitle1" gutterBottom color="text.secondary">
           2495 Bancroft Way, Berkeley, California
         </Typography>
-        <Paper sx={{ p: 3 }}>
+        <Paper sx={{ 
+          p: 4,
+          borderRadius: 3,
+          boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+        }}>
           <form onSubmit={handleSubmit}>
             <FormControl fullWidth margin="normal">
               <InputLabel>Category</InputLabel>
@@ -154,7 +165,12 @@ function CreateOrder() {
               type="submit"
               variant="contained"
               fullWidth
-              sx={{ mt: 3 }}
+              sx={{ 
+                mt: 3,
+                height: 48,
+                background: 'linear-gradient(45deg, #6C63FF 30%, #FF6584 90%)',
+                boxShadow: '0 3px 5px 2px rgba(108, 99, 255, .3)',
+              }}
               disabled={!formData.menuItem}
             >
               Place Order

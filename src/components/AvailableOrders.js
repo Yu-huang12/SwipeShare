@@ -1,12 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Box, Card, CardContent, Button, Grid } from '@mui/material';
+import { Container, Typography, Box, CardContent, Button, Grid } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot, updateDoc, doc } from 'firebase/firestore';
+import { AnimatedCard } from './styled/AnimatedCard';
+import LoadingAnimation from './styled/LoadingAnimation';
+import { StyledButton } from './styled/StyledButton';
+import { slideIn } from './styled/animations';
+import styled from '@emotion/styled';
+
+const AnimatedGrid = styled(Grid)`
+  animation: ${slideIn} 0.3s ease-out;
+  animation-delay: ${props => props.index * 0.1}s;
+  opacity: 0;
+  animation-fill-mode: forwards;
+`;
 
 function AvailableOrders() {
   const { currentUser } = useAuth();
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const q = query(
@@ -21,6 +34,7 @@ function AvailableOrders() {
         ...doc.data()
       }));
       setOrders(orderData);
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -38,6 +52,10 @@ function AvailableOrders() {
     }
   };
 
+  if (loading) {
+    return <LoadingAnimation message="Loading available orders..." />;
+  }
+
   return (
     <Container maxWidth="md">
       <Box sx={{ mt: 4 }}>
@@ -46,9 +64,9 @@ function AvailableOrders() {
         </Typography>
 
         <Grid container spacing={3}>
-          {orders.map((order) => (
-            <Grid item xs={12} sm={6} key={order.id}>
-              <Card>
+          {orders.map((order, index) => (
+            <AnimatedGrid item xs={12} sm={6} key={order.id} index={index}>
+              <AnimatedCard>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
                     {order.restaurant}
@@ -64,17 +82,20 @@ function AvailableOrders() {
                     $10.00
                   </Typography>
 
-                  <Button
+                  <StyledButton
                     variant="contained"
                     color="primary"
                     fullWidth
                     onClick={() => handleAcceptOrder(order.id)}
+                    sx={{
+                      background: 'linear-gradient(45deg, #6C63FF 30%, #FF6584 90%)',
+                    }}
                   >
                     Accept Order
-                  </Button>
+                  </StyledButton>
                 </CardContent>
-              </Card>
-            </Grid>
+              </AnimatedCard>
+            </AnimatedGrid>
           ))}
 
           {orders.length === 0 && (

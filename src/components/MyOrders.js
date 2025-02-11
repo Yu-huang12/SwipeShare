@@ -1,14 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Box, Card, CardContent, Button, Chip, Grid } from '@mui/material';
+import { Container, Typography, Box, CardContent, Button, Chip, Grid } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import Chat from './Chat';
+import { AnimatedCard } from './styled/AnimatedCard';
+import LoadingAnimation from './styled/LoadingAnimation';
+import { StyledButton } from './styled/StyledButton';
+import { slideIn } from './styled/animations';
+import styled from '@emotion/styled';
+
+const AnimatedChip = styled(Chip)`
+  transition: all 0.3s ease;
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const AnimatedGrid = styled(Grid)`
+  animation: ${slideIn} 0.3s ease-out;
+  animation-delay: ${props => props.index * 0.1}s;
+  opacity: 0;
+  animation-fill-mode: forwards;
+`;
 
 function MyOrders() {
   const { currentUser } = useAuth();
   const [orders, setOrders] = useState([]);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const q = query(
@@ -22,10 +43,15 @@ function MyOrders() {
         ...doc.data()
       }));
       setOrders(orderData);
+      setLoading(false);
     });
 
     return () => unsubscribe();
   }, [currentUser]);
+
+  if (loading) {
+    return <LoadingAnimation message="Loading your orders..." />;
+  }
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -59,15 +85,15 @@ function MyOrders() {
         </Typography>
 
         <Grid container spacing={3}>
-          {orders.map((order) => (
-            <Grid item xs={12} key={order.id}>
-              <Card>
+          {orders.map((order, index) => (
+            <AnimatedGrid item xs={12} key={order.id} index={index}>
+              <AnimatedCard>
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h6">
                       {order.restaurant}
                     </Typography>
-                    <Chip
+                    <AnimatedChip
                       label={order.status.toUpperCase()}
                       color={getStatusColor(order.status)}
                     />
@@ -84,14 +110,14 @@ function MyOrders() {
                   </Typography>
 
                   {order.status === 'pending' && (
-                    <Button
+                    <StyledButton
                       variant="outlined"
                       color="error"
                       onClick={() => handleCancelOrder(order.id)}
                       sx={{ mt: 2 }}
                     >
                       Cancel Order
-                    </Button>
+                    </StyledButton>
                   )}
 
                   {(order.status === 'accepted' || order.status === 'completed') && (
@@ -104,8 +130,8 @@ function MyOrders() {
                     </Button>
                   )}
                 </CardContent>
-              </Card>
-            </Grid>
+              </AnimatedCard>
+            </AnimatedGrid>
           ))}
 
           {orders.length === 0 && (
