@@ -9,6 +9,10 @@ import LoadingAnimation from './styled/LoadingAnimation';
 import { StyledButton } from './styled/StyledButton';
 import { slideIn } from './styled/animations';
 import styled from '@emotion/styled';
+import { ScrollReveal, cardVariants, buttonVariants } from './effects/AnimatedElements';
+import ScrollAnimationWrapper from './effects/ScrollAnimationWrapper';
+import { motion } from 'framer-motion';
+import { ShimmerButton } from './effects/AnimatedElements';
 
 const AnimatedChip = styled(Chip)`
   transition: all 0.3s ease;
@@ -79,15 +83,27 @@ function MyOrders() {
 
   return (
     <Container maxWidth="md">
-      <Box sx={{ mt: 4 }}>
+      <ScrollAnimationWrapper
+        variants={{
+          hidden: { opacity: 0, y: -20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+      >
         <Typography variant="h4" gutterBottom>
           My Orders
         </Typography>
+      </ScrollAnimationWrapper>
 
-        <Grid container spacing={3}>
-          {orders.map((order, index) => (
-            <AnimatedGrid item xs={12} key={order.id} index={index}>
-              <AnimatedCard>
+      <Grid container spacing={3}>
+        {orders.map((order, index) => (
+          <Grid item xs={12} key={order.id}>
+            <ScrollAnimationWrapper
+              variants={cardVariants}
+            >
+              <AnimatedCard
+                whileHover="hover"
+                whileTap="tap"
+              >
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h6">
@@ -110,14 +126,20 @@ function MyOrders() {
                   </Typography>
 
                   {order.status === 'pending' && (
-                    <StyledButton
-                      variant="outlined"
-                      color="error"
-                      onClick={() => handleCancelOrder(order.id)}
-                      sx={{ mt: 2 }}
+                    <motion.div
+                      variants={buttonVariants}
+                      whileHover="hover"
+                      whileTap="tap"
                     >
-                      Cancel Order
-                    </StyledButton>
+                      <ShimmerButton
+                        variant="contained"
+                        color="error"
+                        onClick={() => handleCancelOrder(order.id)}
+                        sx={{ mt: 2 }}
+                      >
+                        Cancel Order
+                      </ShimmerButton>
+                    </motion.div>
                   )}
 
                   {(order.status === 'accepted' || order.status === 'completed') && (
@@ -131,24 +153,24 @@ function MyOrders() {
                   )}
                 </CardContent>
               </AnimatedCard>
-            </AnimatedGrid>
-          ))}
+            </ScrollAnimationWrapper>
+          </Grid>
+        ))}
 
-          {orders.length === 0 && (
-            <Grid item xs={12}>
-              <Typography variant="body1" color="text.secondary" align="center">
-                You haven't created any orders yet.
-              </Typography>
-            </Grid>
-          )}
-        </Grid>
-
-        {selectedOrderId && (
-          <Box sx={{ mt: 4 }}>
-            <Chat orderId={selectedOrderId} />
-          </Box>
+        {orders.length === 0 && (
+          <Grid item xs={12}>
+            <Typography variant="body1" color="text.secondary" align="center">
+              You haven't created any orders yet.
+            </Typography>
+          </Grid>
         )}
-      </Box>
+      </Grid>
+
+      {selectedOrderId && (
+        <Box sx={{ mt: 4 }}>
+          <Chat orderId={selectedOrderId} />
+        </Box>
+      )}
     </Container>
   );
 }

@@ -1,9 +1,99 @@
 import React, { useState } from 'react';
-import { Container, TextField, Button, Typography, Box, MenuItem, Paper, Select, FormControl, InputLabel } from '@mui/material';
+import { 
+  Container, 
+  TextField, 
+  Button, 
+  Typography, 
+  Box, 
+  MenuItem, 
+  Paper, 
+  Select, 
+  FormControl, 
+  InputLabel,
+  Fade
+} from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
+import styled from '@emotion/styled';
+
+const GradientText = styled(Typography)`
+  background: linear-gradient(45deg, #A67C52, #D2691E);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-family: 'Playfair Display', serif;
+`;
+
+const StyledFormControl = styled(FormControl)`
+  .MuiOutlinedInput-root {
+    transition: all 0.3s ease;
+    border-color: rgba(166, 124, 82, 0.2);
+    
+    &:hover {
+      border-color: rgba(166, 124, 82, 0.5);
+    }
+    
+    &.Mui-focused {
+      border-color: #A67C52;
+    }
+  }
+
+  .MuiInputLabel-root {
+    color: #7D6B5D;
+    font-family: 'Inter', sans-serif;
+    
+    &.Mui-focused {
+      color: #A67C52;
+    }
+  }
+
+  .MuiSelect-select {
+    font-family: 'Inter', sans-serif;
+  }
+`;
+
+const StyledTextField = styled(TextField)`
+  .MuiOutlinedInput-root {
+    transition: all 0.3s ease;
+    
+    fieldset {
+      border-color: rgba(166, 124, 82, 0.2);
+    }
+    
+    &:hover fieldset {
+      border-color: rgba(166, 124, 82, 0.5);
+    }
+    
+    &.Mui-focused fieldset {
+      border-color: #A67C52;
+    }
+  }
+
+  .MuiInputLabel-root {
+    color: #7D6B5D;
+    font-family: 'Inter', sans-serif;
+    
+    &.Mui-focused {
+      color: #A67C52;
+    }
+  }
+
+  input, textarea {
+    font-family: 'Inter', sans-serif;
+  }
+`;
+
+const DescriptionText = styled(Typography)`
+  color: #7D6B5D;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.7;
+  padding: 16px;
+  border-radius: 8px;
+  background: rgba(166, 124, 82, 0.05);
+  border: 1px solid rgba(166, 124, 82, 0.1);
+`;
 
 const MENU_CATEGORIES = {
   'Half Sandwich + Half Soups & Beverage': [
@@ -82,31 +172,39 @@ function CreateOrder() {
 
   return (
     <Container maxWidth="sm">
-      <Box sx={{ 
-        mt: 4,
-        '& .MuiPaper-root': {
-          background: 'rgba(19, 47, 76, 0.4)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.1)',
-        }
-      }}>
-        <Typography variant="h4" gutterBottom>
-          Ladle & Leaf - Order
+      <Box sx={{ mt: 8, mb: 6 }}>
+        <GradientText variant="h3" gutterBottom align="center">
+          Create Your Order
+        </GradientText>
+        <Typography 
+          variant="subtitle1" 
+          gutterBottom 
+          color="text.secondary"
+          align="center"
+          sx={{ 
+            fontFamily: 'Inter',
+            mb: 4
+          }}
+        >
+          Ladle & Leaf • 2495 Bancroft Way, Berkeley
         </Typography>
-        <Typography variant="subtitle1" gutterBottom color="text.secondary">
-          2495 Bancroft Way, Berkeley, California
-        </Typography>
-        <Paper sx={{ 
-          p: 4,
-          borderRadius: 3,
-          boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
-        }}>
+        
+        <Paper 
+          elevation={0}
+          sx={{ 
+            p: 4,
+            borderRadius: 3,
+            background: 'rgba(255, 255, 255, 0.8)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(166, 124, 82, 0.1)',
+          }}
+        >
           <form onSubmit={handleSubmit}>
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Category</InputLabel>
+            <StyledFormControl fullWidth margin="normal">
+              <InputLabel>Select Category</InputLabel>
               <Select
                 value={formData.category}
-                label="Category"
+                label="Select Category"
                 onChange={(e) => setFormData({ 
                   ...formData, 
                   category: e.target.value,
@@ -120,58 +218,74 @@ function CreateOrder() {
                   </MenuItem>
                 ))}
               </Select>
-            </FormControl>
+            </StyledFormControl>
 
-            {formData.category && (
-              <FormControl fullWidth margin="normal">
-                <InputLabel>Menu Item</InputLabel>
-                <Select
-                  value={formData.menuItem}
-                  label="Menu Item"
-                  onChange={(e) => setFormData({ ...formData, menuItem: e.target.value })}
-                  required
-                >
-                  {MENU_CATEGORIES[formData.category].map((item) => (
-                    <MenuItem key={item.name} value={item.name}>
-                      {item.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
+            <Fade in={Boolean(formData.category)}>
+              <Box>
+                {formData.category && (
+                  <StyledFormControl fullWidth margin="normal">
+                    <InputLabel>Select Menu Item</InputLabel>
+                    <Select
+                      value={formData.menuItem}
+                      label="Select Menu Item"
+                      onChange={(e) => setFormData({ ...formData, menuItem: e.target.value })}
+                      required
+                    >
+                      {MENU_CATEGORIES[formData.category].map((item) => (
+                        <MenuItem key={item.name} value={item.name}>
+                          {item.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </StyledFormControl>
+                )}
+              </Box>
+            </Fade>
 
-            {formData.menuItem && (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 2, mb: 2 }}>
-                {MENU_CATEGORIES[formData.category].find(item => item.name === formData.menuItem)?.description}
-              </Typography>
-            )}
+            <Fade in={Boolean(formData.menuItem)}>
+              <Box>
+                {formData.menuItem && (
+                  <DescriptionText variant="body2" sx={{ mt: 2, mb: 3 }}>
+                    {MENU_CATEGORIES[formData.category].find(item => item.name === formData.menuItem)?.description}
+                  </DescriptionText>
+                )}
+              </Box>
+            </Fade>
             
-            <TextField
+            <StyledTextField
               fullWidth
-              label="Additional Notes"
+              label="Special Instructions"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               margin="normal"
               multiline
-              rows={2}
-              placeholder="Any special requests or notes?"
+              rows={3}
+              placeholder="Any dietary preferences or special requests?"
             />
             
-            <Typography variant="h6" color="primary" sx={{ mt: 2, mb: 2 }}>
-              Price: $10.00
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                mt: 3, 
+                mb: 3,
+                color: '#A67C52',
+                fontFamily: 'Playfair Display',
+                textAlign: 'center'
+              }}
+            >
+              Total Amount: $10.00
             </Typography>
             
             <Button
               type="submit"
               variant="contained"
               fullWidth
-              sx={{ 
-                mt: 3,
-                height: 48,
-                background: 'linear-gradient(45deg, #6C63FF 30%, #FF6584 90%)',
-                boxShadow: '0 3px 5px 2px rgba(108, 99, 255, .3)',
-              }}
               disabled={!formData.menuItem}
+              sx={{ 
+                py: 2,
+                fontSize: '1.1rem',
+                fontFamily: 'Playfair Display'
+              }}
             >
               Place Order
             </Button>
