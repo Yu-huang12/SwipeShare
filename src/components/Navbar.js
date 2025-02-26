@@ -245,10 +245,17 @@ function Navbar() {
 
   const menuItems = [
     { 
-      text: 'Request Meal', 
+      text: 'Create Listing', 
       icon: <AddCircleOutlineIcon />, 
+      path: '/create-listing',
+      description: 'Create a meal listing (for sellers)',
+      show: currentUser
+    },
+    { 
+      text: 'Request Meal', 
+      icon: <RestaurantIcon />, 
       path: '/request-meal',
-      description: 'Place a meal request'
+      description: 'Request a meal'
     },
     { 
       text: 'My Orders', 

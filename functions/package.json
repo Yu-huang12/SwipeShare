@@ -13,8 +13,11 @@
   },
   "main": "index.js",
   "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
     "firebase-admin": "^11.8.0",
-    "firebase-functions": "^4.3.1"
+    "firebase-functions": "^4.3.1",
+    "stripe": "^17.7.0"
   },
   "private": true
-} 
+}

@@ -11,29 +11,52 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
-    // Orders collection rules
-    match /orders/{orderId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() 
-        && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.status == 'pending';
-      allow update: if isAuthenticated() 
-        && (isOwner(resource.data.createdBy) 
-        || isOwner(resource.data.acceptedBy)
-        || (resource.data.status == 'pending' && !resource.data.acceptedBy));
+    // Products collection (for Stripe)
+    match /products/{productId} {
+      allow read: if true;  // Allow public read
+      allow write: if false;  // Only admin can write
+      
+      match /prices/{priceId} {
+        allow read: if true;  // Allow public read
+      }
     }
 
-    // Users collection rules
+    // Meal requests
+    match /meal_requests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+    }
+
+    // Users collection
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
+      allow write: if request.auth.uid == userId;
     }
 
-    // Messages collection rules
-    match /messages/{messageId} {
-      allow read: if isAuthenticated();
+    // Payments collection
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated() 
+        && request.auth.uid == resource.data.userId;
       allow create: if isAuthenticated() 
-        && request.resource.data.senderId == request.auth.uid;
+        && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Stripe configuration
+    match /stripe_config/{docId} {
+      allow read: if isAuthenticated();
+    }
+
+    // Stripe customers
+    match /customers/{uid} {
+      allow read: if request.auth.uid == uid;
+      allow write: if request.auth.uid == uid;
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
   }
 }

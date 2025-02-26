@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
@@ -21,6 +21,11 @@ import AvailableSwipes from './components/AvailableSwipes';
 import RequestMeal from './components/RequestMeal';
 import NotificationHandler from './components/NotificationHandler';
 import AdminView from './components/AdminView';
+import PaymentSuccess from './components/PaymentSuccess';
+import PaymentCancel from './components/PaymentCancel';
+import { initializeProducts } from './utils/initializeProducts';
+import { initializeStripeProduct } from './utils/initializeStripeProduct';
+import CreateListing from './components/CreateListing';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -38,22 +43,30 @@ function AnimatedRoutes() {
             <Login />
           </PageTransition>
         } />
-        <Route path="/create-order" element={<PrivateRoute><CreateOrder /></PrivateRoute>} />
+        <Route path="/create-listing" element={<PrivateRoute><CreateListing /></PrivateRoute>} />
         <Route path="/my-orders" element={<PrivateRoute><MyOrders /></PrivateRoute>} />
         <Route path="/available-orders" element={<PrivateRoute><AvailableOrders /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-        <Route path="/buy-meal" element={<BuyOrder />} />
         <Route path="/sell-meal" element={<PrivateRoute><SellOrder /></PrivateRoute>} />
         <Route path="/available-swipes" element={<PrivateRoute><AvailableSwipes /></PrivateRoute>} />
-        <Route path="/buy-meal/:id" element={<PrivateRoute><BuyOrder /></PrivateRoute>} />
         <Route path="/request-meal" element={<PrivateRoute><RequestMeal /></PrivateRoute>} />
         <Route path="/admin" element={<PrivateRoute><AdminView /></PrivateRoute>} />
+        <Route path="/success" element={<PaymentSuccess />} />
+        <Route path="/cancel" element={<PaymentCancel />} />
       </Routes>
     </AnimatePresence>
   );
 }
 
 function App() {
+  useEffect(() => {
+    initializeStripeProduct();
+  }, []);
+
+  // Call this once when setting up your application
+  // You can do this in a separate admin tool or console
+  initializeProducts();
+
   return (
     <AuthProvider>
       <NotificationProvider>

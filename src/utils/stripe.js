@@ -1,44 +1,44 @@
 import { loadStripe } from '@stripe/stripe-js';
 
-const stripePromise = loadStripe('your_publishable_key');
+const API_URL = process.env.REACT_APP_API_URL;
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://your-backend-url.onrender.com';
-
-export const processPayment = async (orderId, amount) => {
+export const processPayment = async (orderId, amount, stripe, elements) => {
   try {
-    const stripe = await stripePromise;
-    
-    // Create payment intent on your backend
-    const response = await fetch(`${API_URL}/api/create-payment-intent`, {
+    // Get payment method from card element
+    const { error: submitError, paymentMethod } = await stripe.createPaymentMethod({
+      type: 'card',
+      card: elements.getElement('card'),
+    });
+
+    if (submitError) {
+      throw new Error(submitError.message);
+    }
+
+    // Create payment intent
+    const response = await fetch(`${process.env.REACT_APP_API_URL}/api/create-payment-intent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        orderId,
         amount,
+        orderId,
       }),
     });
-    
-    const data = await response.json();
-    
-    // Confirm payment with Stripe
-    const result = await stripe.confirmCardPayment(data.clientSecret, {
-      payment_method: {
-        card: elements.getElement('card'),
-        billing_details: {
-          name: 'User Name',
-        },
-      },
+
+    const { clientSecret } = await response.json();
+
+    // Confirm payment
+    const { error: confirmError } = await stripe.confirmCardPayment(clientSecret, {
+      payment_method: paymentMethod.id,
     });
-    
-    if (result.error) {
-      throw new Error(result.error.message);
+
+    if (confirmError) {
+      throw new Error(confirmError.message);
     }
-    
-    return result.paymentIntent;
+
+    return { success: true };
   } catch (error) {
-    console.error('Payment error:', error);
-    throw error;
+    return { success: false, error: error.message };
   }
 }; 

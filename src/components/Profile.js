@@ -175,6 +175,29 @@ function Profile() {
     }
   };
 
+  // Add Stripe Connect button for sellers
+  const handleStripeConnect = async () => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/create-connect-account`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: currentUser.uid,
+          email: currentUser.email
+        })
+      });
+      
+      const data = await response.json();
+      // Redirect to Stripe Connect onboarding
+      window.location.href = data.accountLink;
+    } catch (error) {
+      console.error('Error connecting Stripe:', error);
+      setError('Failed to connect payment account');
+    }
+  };
+
   if (loading) {
     return (
       <Container maxWidth="sm">
@@ -277,6 +300,16 @@ function Profile() {
                 <Alert severity="info" sx={{ mb: 3 }}>
                   You are registered as a seller. You will receive notifications for new meal requests.
                 </Alert>
+
+                <Button
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  onClick={handleStripeConnect}
+                  sx={{ mb: 2 }}
+                >
+                  Connect Payment Account
+                </Button>
 
                 <Button
                   variant="outlined"
