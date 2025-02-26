@@ -34,6 +34,8 @@ import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import CloseIcon from '@mui/icons-material/Close';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const StyledAppBar = styled(AppBar)`
   background: rgba(255, 255, 255, 0.95);
@@ -142,6 +144,27 @@ function HideOnScroll({ children }) {
   );
 }
 
+const restaurantInfo = [
+  {
+    name: "Browns",
+    hours: {
+      breakfast: "7:30 AM - 10:30 AM",
+      lunch: "11:00 AM - 2:30 PM"
+    },
+    location: "2400 Durant Avenue",
+    shortName: "Browns"
+  },
+  {
+    name: "Golden Bear Cafe",
+    hours: {
+      breakfast: "8:00 AM - 11:00 AM",
+      lunch: "11:00 AM - 3:00 PM"
+    },
+    location: "Lower Sproul Plaza",
+    shortName: "GBC"
+  }
+];
+
 function Navbar() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -154,6 +177,41 @@ function Navbar() {
     disableHysteresis: true,
     threshold: 100,
   });
+  const [selectedRestaurant, setSelectedRestaurant] = useState(restaurantInfo[0]);
+  const currentMealTime = getCurrentMealTime();
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Listen for new notifications
+    const q = query(
+      collection(db, 'notifications'),
+      where('sellerUid', '==', currentUser.uid),
+      where('status', '==', 'unread'),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const newNotifications = [];
+      snapshot.forEach((doc) => {
+        newNotifications.push({ id: doc.id, ...doc.data() });
+      });
+      setNotifications(newNotifications);
+
+      // Play sound for new notifications
+      if (newNotifications.length > 0) {
+        playNotificationSound();
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  // Add notification sound
+  const playNotificationSound = () => {
+    const audio = new Audio('/notification-sound.mp3');
+    audio.play();
+  };
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -185,12 +243,28 @@ function Navbar() {
   };
 
   const menuItems = [
-    { text: 'Create Order', icon: <AddCircleOutlineIcon />, path: '/create-order' },
-    { text: 'Available Orders', icon: <SearchIcon />, path: '/available-orders' },
-    { text: 'My Orders', icon: <PersonIcon />, path: '/my-orders' },
+    { 
+      text: 'Request Meal', 
+      icon: <AddCircleOutlineIcon />, 
+      path: '/request-meal',
+      description: 'Place a meal request'
+    },
+    { 
+      text: 'My Orders', 
+      icon: <PersonIcon />, 
+      path: '/my-orders',
+      description: 'View your orders and fulfillments'
+    }
   ];
 
-  const drawer = (
+  function getCurrentMealTime() {
+    const hour = new Date().getHours();
+    if (hour >= 7 && hour < 11) return 'breakfast';
+    if (hour >= 11 && hour < 15) return 'lunch';
+    return null;
+  }
+
+  const drawerContent = (
     <Box sx={{ width: 280 }}>
       <Box 
         sx={{ 
@@ -230,6 +304,82 @@ function Navbar() {
           <CloseIcon />
         </IconButton>
       </Box>
+
+      {/* Restaurant Selection */}
+      <Box sx={{ p: 2, borderBottom: '1px solid rgba(184, 134, 11, 0.1)' }}>
+        {restaurantInfo.map((restaurant) => (
+          <Button
+            key={restaurant.name}
+            fullWidth
+            sx={{
+              justifyContent: 'flex-start',
+              py: 1.5,
+              px: 2,
+              mb: 1,
+              borderRadius: 1,
+              backgroundColor: selectedRestaurant.name === restaurant.name 
+                ? 'rgba(184, 134, 11, 0.08)'
+                : 'transparent',
+              '&:hover': {
+                backgroundColor: 'rgba(184, 134, 11, 0.12)'
+              }
+            }}
+            onClick={() => setSelectedRestaurant(restaurant)}
+          >
+            <Box>
+              <Typography 
+                variant="subtitle1" 
+                sx={{ 
+                  color: selectedRestaurant.name === restaurant.name 
+                    ? '#B8860B' 
+                    : 'inherit',
+                  fontWeight: selectedRestaurant.name === restaurant.name 
+                    ? 600 
+                    : 500
+                }}
+              >
+                {restaurant.shortName || restaurant.name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block">
+                {restaurant.location}
+              </Typography>
+            </Box>
+          </Button>
+        ))}
+      </Box>
+
+      {/* Current Hours */}
+      <Box sx={{ p: 2, borderBottom: '1px solid rgba(184, 134, 11, 0.1)' }}>
+        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+          Current Hours
+        </Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Box>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: currentMealTime === 'breakfast' ? '#B8860B' : 'text.secondary',
+                fontWeight: currentMealTime === 'breakfast' ? 600 : 400
+              }}
+            >
+              Breakfast: {selectedRestaurant.hours.breakfast}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: currentMealTime === 'lunch' ? '#B8860B' : 'text.secondary',
+                fontWeight: currentMealTime === 'lunch' ? 600 : 400
+              }}
+            >
+              Lunch: {selectedRestaurant.hours.lunch}
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Navigation Menu */}
       <List sx={{ pt: 1 }}>
         {menuItems.map((item) => (
           <ListItem
@@ -259,6 +409,7 @@ function Navbar() {
             </ListItemIcon>
             <ListItemText 
               primary={item.text}
+              secondary={item.description}
               sx={{
                 '& .MuiTypography-root': {
                   color: location.pathname === item.path ? '#B8860B' : 'inherit',
@@ -327,7 +478,7 @@ function Navbar() {
               </Box>
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                {currentUser && (
+                {currentUser ? (
                   <>
                     <Tooltip title="Notifications" arrow>
                       <NavIconButton onClick={handleNotificationClick}>
@@ -353,6 +504,20 @@ function Navbar() {
                       </NavIconButton>
                     </Tooltip>
                   </>
+                ) : (
+                  <Button
+                    variant="contained"
+                    onClick={() => navigate('/login')}
+                    sx={{
+                      background: 'linear-gradient(45deg, #B8860B, #DAA520)',
+                      color: 'white',
+                      '&:hover': {
+                        background: 'linear-gradient(45deg, #996515, #B8860B)',
+                      }
+                    }}
+                  >
+                    Login
+                  </Button>
                 )}
               </Box>
             </Toolbar>
@@ -382,86 +547,7 @@ function Navbar() {
           },
         }}
       >
-        <Box sx={{ width: '100%' }}>
-          <Box 
-            sx={{ 
-              p: 2.5, 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-              borderBottom: '1px solid rgba(184, 134, 11, 0.1)',
-            }}
-          >
-            <LogoText
-              onClick={() => {
-                navigate('/');
-                handleDrawerToggle();
-              }}
-              sx={{ 
-                fontSize: '1.4rem',
-                cursor: 'pointer',
-              }}
-            >
-              <RestaurantIcon sx={{ 
-                color: '#DAA520',
-                filter: 'drop-shadow(0 2px 4px rgba(184, 134, 11, 0.3))',
-                fontSize: 24
-              }} />
-              SwipeShare
-            </LogoText>
-            <IconButton 
-              onClick={handleDrawerToggle}
-              sx={{ 
-                color: '#B8860B',
-                '&:hover': { 
-                  background: 'rgba(184, 134, 11, 0.08)' 
-                }
-              }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Box>
-          <List sx={{ pt: 1 }}>
-            {menuItems.map((item) => (
-              <ListItem
-                button
-                key={item.text}
-                onClick={() => {
-                  navigate(item.path);
-                  handleDrawerToggle();
-                }}
-                sx={{
-                  my: 0.5,
-                  mx: 1,
-                  borderRadius: 1,
-                  bgcolor: location.pathname === item.path ? 'rgba(184, 134, 11, 0.08)' : 'transparent',
-                  '&:hover': {
-                    bgcolor: 'rgba(184, 134, 11, 0.12)',
-                  }
-                }}
-              >
-                <ListItemIcon 
-                  sx={{ 
-                    color: location.pathname === item.path ? '#B8860B' : 'inherit',
-                    minWidth: 40
-                  }}
-                >
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText 
-                  primary={item.text}
-                  sx={{
-                    '& .MuiTypography-root': {
-                      color: location.pathname === item.path ? '#B8860B' : 'inherit',
-                      fontWeight: location.pathname === item.path ? 600 : 500,
-                      fontSize: '0.95rem'
-                    }
-                  }}
-                />
-              </ListItem>
-            ))}
-          </List>
-        </Box>
+        {drawerContent}
       </Drawer>
 
       {/* Profile Menu */}

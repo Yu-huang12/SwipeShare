@@ -15,6 +15,10 @@ import { theme } from './theme';
 import { AnimatePresence } from 'framer-motion';
 import ParticleBackground from './components/effects/ParticleBackground';
 import PageTransition from './components/effects/PageTransition';
+import BuyOrder from './components/BuyOrder';
+import SellOrder from './components/SellOrder';
+import AvailableSwipes from './components/AvailableSwipes';
+import RequestMeal from './components/RequestMeal';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -36,6 +40,11 @@ function AnimatedRoutes() {
         <Route path="/my-orders" element={<PrivateRoute><MyOrders /></PrivateRoute>} />
         <Route path="/available-orders" element={<PrivateRoute><AvailableOrders /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+        <Route path="/buy-meal" element={<BuyOrder />} />
+        <Route path="/sell-meal" element={<PrivateRoute><SellOrder /></PrivateRoute>} />
+        <Route path="/available-swipes" element={<PrivateRoute><AvailableSwipes /></PrivateRoute>} />
+        <Route path="/buy-meal/:id" element={<PrivateRoute><BuyOrder /></PrivateRoute>} />
+        <Route path="/request-meal" element={<PrivateRoute><RequestMeal /></PrivateRoute>} />
       </Routes>
     </AnimatePresence>
   );

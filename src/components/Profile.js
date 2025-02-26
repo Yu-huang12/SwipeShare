@@ -8,15 +8,23 @@ import {
   Grid,
   Divider,
   CircularProgress,
-  Chip
+  Chip,
+  Card,
+  CardContent,
+  Button,
+  Switch,
+  FormControlLabel,
+  TextField,
+  Alert
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc, setDoc } from 'firebase/firestore';
 import { AnimatedCard } from './styled/AnimatedCard';
 import FastfoodIcon from '@mui/icons-material/Fastfood';
 import LocalDiningIcon from '@mui/icons-material/LocalDining';
 import StarIcon from '@mui/icons-material/Star';
+import { requestNotificationPermission } from '../firebase';
 
 function Profile() {
   const { currentUser } = useAuth();
@@ -27,6 +35,14 @@ function Profile() {
     completedOrders: 0
   });
   const [loading, setLoading] = useState(true);
+  const [isSeller, setIsSeller] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [sellerInfo, setSellerInfo] = useState({
+    calId: '',
+    phoneNumber: '',
+    notificationsEnabled: false
+  });
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -63,6 +79,15 @@ function Profile() {
           completedOrders
         });
 
+        // Fetch user's seller status
+        const userData = userDoc.data();
+        setIsSeller(userData.isSeller || false);
+        setSellerInfo({
+          calId: userData.calId || '',
+          phoneNumber: userData.phoneNumber || '',
+          notificationsEnabled: userData.notificationsEnabled || false
+        });
+
         setLoading(false);
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -73,108 +98,175 @@ function Profile() {
     fetchProfile();
   }, [currentUser]);
 
+  const handleSellerRegistration = async () => {
+    try {
+      setError('');
+      setSuccess('');
+
+      // Validate Cal ID format (you can adjust the validation as needed)
+      if (sellerInfo.calId.length !== 8) {
+        setError('Please enter a valid 8-digit Cal ID');
+        return;
+      }
+
+      // Validate phone number format
+      const phoneRegex = /^\d{10}$/;
+      if (!phoneRegex.test(sellerInfo.phoneNumber)) {
+        setError('Please enter a valid 10-digit phone number');
+        return;
+      }
+
+      // Update user document
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        isSeller: true,
+        calId: sellerInfo.calId,
+        phoneNumber: sellerInfo.phoneNumber,
+        notificationsEnabled: sellerInfo.notificationsEnabled,
+        updatedAt: new Date()
+      });
+
+      // If notifications are enabled, request permission
+      if (sellerInfo.notificationsEnabled) {
+        await requestNotificationPermission(currentUser);
+      }
+
+      setIsSeller(true);
+      setSuccess('Successfully registered as a seller!');
+    } catch (error) {
+      console.error('Error registering as seller:', error);
+      setError('Failed to register as seller. Please try again.');
+    }
+  };
+
+  const handleUnregister = async () => {
+    try {
+      setError('');
+      setSuccess('');
+
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        isSeller: false,
+        updatedAt: new Date()
+      });
+
+      setIsSeller(false);
+      setSuccess('Successfully unregistered as a seller');
+    } catch (error) {
+      console.error('Error unregistering:', error);
+      setError('Failed to unregister. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-        <CircularProgress />
-      </Box>
+      <Container maxWidth="sm">
+        <Box sx={{ mt: 8 }}>
+          <Typography>Loading...</Typography>
+        </Box>
+      </Container>
     );
   }
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ mt: 4 }}>
-        <Paper
-          sx={{
-            p: 4,
-            background: 'rgba(19, 47, 76, 0.4)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-            <Avatar
-              src={currentUser.photoURL}
-              sx={{
-                width: 120,
-                height: 120,
-                border: '4px solid rgba(108, 99, 255, 0.5)',
-                boxShadow: '0 4px 14px 0 rgba(108, 99, 255, 0.39)',
-              }}
-            />
-            <Box sx={{ ml: 3 }}>
-              <Typography variant="h4" gutterBottom>
-                {profile?.displayName || currentUser.displayName}
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                {currentUser.email}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Member since {profile?.createdAt?.toDate().toLocaleDateString()}
-              </Typography>
+    <Container maxWidth="sm">
+      <Box sx={{ mt: 8, mb: 6 }}>
+        <Typography variant="h4" gutterBottom align="center">
+          Profile
+        </Typography>
+
+        <Card sx={{ mb: 4 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <Box sx={{ ml: 2 }}>
+                <Typography variant="h6">
+                  {currentUser.displayName || 'User'}
+                </Typography>
+                <Typography color="textSecondary">
+                  {currentUser.email}
+                </Typography>
+              </Box>
             </Box>
-          </Box>
 
-          <Divider sx={{ my: 4, borderColor: 'rgba(255,255,255,0.1)' }} />
+            <Divider sx={{ my: 3 }} />
 
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
-              <AnimatedCard>
-                <Box sx={{ p: 3, textAlign: 'center' }}>
-                  <FastfoodIcon sx={{ fontSize: 40, color: '#6C63FF', mb: 2 }} />
-                  <Typography variant="h4" gutterBottom>
-                    {stats.ordersCreated}
-                  </Typography>
-                  <Typography color="text.secondary">
-                    Orders Created
-                  </Typography>
-                </Box>
-              </AnimatedCard>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <AnimatedCard>
-                <Box sx={{ p: 3, textAlign: 'center' }}>
-                  <LocalDiningIcon sx={{ fontSize: 40, color: '#FF6584', mb: 2 }} />
-                  <Typography variant="h4" gutterBottom>
-                    {stats.ordersAccepted}
-                  </Typography>
-                  <Typography color="text.secondary">
-                    Orders Accepted
-                  </Typography>
-                </Box>
-              </AnimatedCard>
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <AnimatedCard>
-                <Box sx={{ p: 3, textAlign: 'center' }}>
-                  <StarIcon sx={{ fontSize: 40, color: '#FFD700', mb: 2 }} />
-                  <Typography variant="h4" gutterBottom>
-                    {stats.completedOrders}
-                  </Typography>
-                  <Typography color="text.secondary">
-                    Completed Orders
-                  </Typography>
-                </Box>
-              </AnimatedCard>
-            </Grid>
-          </Grid>
-
-          <Box sx={{ mt: 4 }}>
             <Typography variant="h6" gutterBottom>
-              Favorite Restaurants
+              Seller Registration
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              <Chip 
-                label="Ladle & Leaf"
-                sx={{ 
-                  background: 'linear-gradient(45deg, #6C63FF 30%, #FF6584 90%)',
-                  color: 'white'
-                }}
-              />
-              {/* Add more restaurants as they're added to the system */}
-            </Box>
-          </Box>
-        </Paper>
+
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+
+            {success && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                {success}
+              </Alert>
+            )}
+
+            {!isSeller ? (
+              <Box>
+                <TextField
+                  fullWidth
+                  label="Cal ID"
+                  value={sellerInfo.calId}
+                  onChange={(e) => setSellerInfo({ ...sellerInfo, calId: e.target.value })}
+                  margin="normal"
+                  required
+                  helperText="Enter your 8-digit Cal ID"
+                />
+
+                <TextField
+                  fullWidth
+                  label="Phone Number"
+                  value={sellerInfo.phoneNumber}
+                  onChange={(e) => setSellerInfo({ ...sellerInfo, phoneNumber: e.target.value })}
+                  margin="normal"
+                  required
+                  helperText="Enter your phone number for buyer contact"
+                />
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={sellerInfo.notificationsEnabled}
+                      onChange={(e) => setSellerInfo({ 
+                        ...sellerInfo, 
+                        notificationsEnabled: e.target.checked 
+                      })}
+                    />
+                  }
+                  label="Enable Notifications"
+                  sx={{ mt: 2 }}
+                />
+
+                <Button
+                  variant="contained"
+                  fullWidth
+                  onClick={handleSellerRegistration}
+                  sx={{ mt: 3 }}
+                >
+                  Register as Seller
+                </Button>
+              </Box>
+            ) : (
+              <Box>
+                <Alert severity="info" sx={{ mb: 3 }}>
+                  You are registered as a seller. You will receive notifications for new meal requests.
+                </Alert>
+
+                <Button
+                  variant="outlined"
+                  color="error"
+                  fullWidth
+                  onClick={handleUnregister}
+                >
+                  Unregister as Seller
+                </Button>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
       </Box>
     </Container>
   );

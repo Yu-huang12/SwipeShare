@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Box, CardContent, Button, Chip, Grid } from '@mui/material';
+import { Container, Typography, Box, Tabs, Tab, Card, CardContent, Grid, Button, Chip } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
-import { collection, query, where, onSnapshot, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, updateDoc, doc } from 'firebase/firestore';
 import Chat from './Chat';
 import { AnimatedCard } from './styled/AnimatedCard';
 import LoadingAnimation from './styled/LoadingAnimation';
@@ -30,28 +30,31 @@ const AnimatedGrid = styled(Grid)`
 `;
 
 function MyOrders() {
+  const [tab, setTab] = useState(0);
+  const [myOrders, setMyOrders] = useState([]);
   const { currentUser } = useAuth();
-  const [orders, setOrders] = useState([]);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'orders'),
-      where('createdBy', '==', currentUser.uid)
-    );
+    const fetchOrders = async () => {
+      const q = query(
+        collection(db, 'orders'),
+        where(tab === 0 ? 'buyerUid' : 'sellerUid', '==', currentUser.uid),
+        orderBy('createdAt', 'desc')
+      );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const orderData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setOrders(orderData);
+      const snapshot = await getDocs(q);
+      const orders = [];
+      snapshot.forEach((doc) => {
+        orders.push({ id: doc.id, ...doc.data() });
+      });
+      setMyOrders(orders);
       setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
-  }, [currentUser]);
+    fetchOrders();
+  }, [tab, currentUser]);
 
   if (loading) {
     return <LoadingAnimation message="Loading your orders..." />;
@@ -83,88 +86,63 @@ function MyOrders() {
 
   return (
     <Container maxWidth="md">
-      <ScrollAnimationWrapper
-        variants={{
-          hidden: { opacity: 0, y: -20 },
-          visible: { opacity: 1, y: 0 }
-        }}
-      >
-        <Typography variant="h4" gutterBottom>
+      <Box sx={{ mt: 8, mb: 4 }}>
+        <Typography variant="h4" gutterBottom align="center">
           My Orders
         </Typography>
-      </ScrollAnimationWrapper>
+        
+        <Tabs value={tab} onChange={(e, newValue) => setTab(newValue)} centered>
+          <Tab label="Purchases" />
+          <Tab label="Sales" />
+        </Tabs>
 
-      <Grid container spacing={3}>
-        {orders.map((order, index) => (
-          <Grid item xs={12} key={order.id}>
-            <ScrollAnimationWrapper
-              variants={cardVariants}
-            >
-              <AnimatedCard
-                whileHover="hover"
-                whileTap="tap"
-              >
+        <Grid container spacing={3} sx={{ mt: 3 }}>
+          {myOrders.map((order) => (
+            <Grid item xs={12} key={order.id}>
+              <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="h6">
-                      {order.restaurant}
+                      {order.restaurant} - {order.mealTime}
                     </Typography>
-                    <AnimatedChip
+                    <AnimatedChip 
                       label={order.status.toUpperCase()}
-                      color={getStatusColor(order.status)}
+                      color={order.status === 'pending' ? 'warning' : 
+                             order.status === 'completed' ? 'success' : 
+                             order.status === 'cancelled' ? 'error' : 'default'}
                     />
                   </Box>
-
-                  <Typography variant="body1" gutterBottom>
-                    Items: {order.items}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Notes: {order.notes}
+                  <Typography>
+                    Date: {order.createdAt.toDate().toLocaleDateString()}
                   </Typography>
                   <Typography variant="h6" color="primary">
                     $10.00
                   </Typography>
-
                   {order.status === 'pending' && (
-                    <motion.div
-                      variants={buttonVariants}
-                      whileHover="hover"
-                      whileTap="tap"
+                    <Button
+                      variant="contained"
+                      color="error"
+                      onClick={() => handleCancelOrder(order.id)}
+                      sx={{ mt: 2 }}
                     >
-                      <ShimmerButton
-                        variant="contained"
-                        color="error"
-                        onClick={() => handleCancelOrder(order.id)}
-                        sx={{ mt: 2 }}
-                      >
-                        Cancel Order
-                      </ShimmerButton>
-                    </motion.div>
+                      Cancel Order
+                    </Button>
                   )}
-
                   {(order.status === 'accepted' || order.status === 'completed') && (
                     <Button
                       variant="outlined"
                       onClick={() => handleOpenChat(order.id)}
                       sx={{ mt: 2 }}
                     >
-                      Chat with {order.acceptedBy === currentUser.uid ? 'Buyer' : 'Seller'}
+                      Chat
                     </Button>
                   )}
                 </CardContent>
-              </AnimatedCard>
-            </ScrollAnimationWrapper>
-          </Grid>
-        ))}
-
-        {orders.length === 0 && (
-          <Grid item xs={12}>
-            <Typography variant="body1" color="text.secondary" align="center">
-              You haven't created any orders yet.
-            </Typography>
-          </Grid>
-        )}
-      </Grid>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
 
       {selectedOrderId && (
         <Box sx={{ mt: 4 }}>
