@@ -36,6 +36,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 const StyledAppBar = styled(AppBar)`
   background: rgba(255, 255, 255, 0.95);
@@ -254,6 +255,12 @@ function Navbar() {
       icon: <PersonIcon />, 
       path: '/my-orders',
       description: 'View your orders and fulfillments'
+    },
+    { 
+      text: 'Admin View', 
+      icon: <AdminPanelSettingsIcon />, 
+      path: '/admin',
+      description: 'View registered sellers'
     }
   ];
 

@@ -19,6 +19,8 @@ import BuyOrder from './components/BuyOrder';
 import SellOrder from './components/SellOrder';
 import AvailableSwipes from './components/AvailableSwipes';
 import RequestMeal from './components/RequestMeal';
+import NotificationHandler from './components/NotificationHandler';
+import AdminView from './components/AdminView';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -45,6 +47,7 @@ function AnimatedRoutes() {
         <Route path="/available-swipes" element={<PrivateRoute><AvailableSwipes /></PrivateRoute>} />
         <Route path="/buy-meal/:id" element={<PrivateRoute><BuyOrder /></PrivateRoute>} />
         <Route path="/request-meal" element={<PrivateRoute><RequestMeal /></PrivateRoute>} />
+        <Route path="/admin" element={<PrivateRoute><AdminView /></PrivateRoute>} />
       </Routes>
     </AnimatePresence>
   );
@@ -60,6 +63,7 @@ function App() {
             <ParticleBackground />
             <div className="App">
               <Navbar />
+              <NotificationHandler />
               <AnimatedRoutes />
             </div>
           </Router>

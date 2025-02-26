@@ -18,14 +18,14 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export const db = getFirestore(app);
-const messaging = getMessaging(app);
+export const messaging = getMessaging(app);
 
 export const requestNotificationPermission = async (currentUser) => {
   try {
     const permission = await Notification.requestPermission();
     if (permission === 'granted' && currentUser) {
       const token = await getToken(messaging, {
-        vapidKey: 'YOUR_VAPID_KEY'
+        vapidKey: "BEU5O9j9NW0jy_dpcCp4RsbKqm-zh9ebgWez5psU4VLc_UEj24zHxHC1M9bo8RcqfphklCHVbOWrUqBQER_ACwE"
       });
       
       // Save this token to the user's document in Firestore

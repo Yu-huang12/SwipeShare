@@ -1,3 +1,7 @@
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+admin.initializeApp();
+
 exports.sendOrderNotification = functions.firestore
   .document('orders/{orderId}')
   .onCreate(async (snap, context) => {
@@ -26,4 +30,40 @@ exports.sendOrderNotification = functions.firestore
         console.error('Error sending notification:', error);
       }
     }
-  }); 
+  });
+
+exports.notifyNewMealRequest = functions.firestore
+  .document('meal_requests/{requestId}')
+  .onCreate(async (snap, context) => {
+    const request = snap.data();
+    
+    // Get all sellers
+    const sellersSnapshot = await admin.firestore()
+      .collection('users')
+      .where('isSeller', '==', true)
+      .get();
+    
+    const notifications = [];
+    
+    sellersSnapshot.forEach(sellerDoc => {
+      const sellerData = sellerDoc.data();
+      if (sellerData.fcmToken) {
+        notifications.push({
+          token: sellerData.fcmToken,
+          notification: {
+            title: 'New Meal Request!',
+            body: `${request.restaurant} - ${request.mealTime}`
+          },
+          data: {
+            requestId: context.params.requestId,
+            restaurant: request.restaurant,
+            mealTime: request.mealTime
+          }
+        });
+      }
+    });
+
+    // Send notifications
+    const messaging = admin.messaging();
+    await Promise.all(notifications.map(n => messaging.send(n)));
+}); 

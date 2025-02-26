@@ -103,9 +103,9 @@ function Profile() {
       setError('');
       setSuccess('');
 
-      // Validate Cal ID format (you can adjust the validation as needed)
-      if (sellerInfo.calId.length !== 8) {
-        setError('Please enter a valid 8-digit Cal ID');
+      // Validate Cal ID format (10 digits)
+      if (!/^\d{10}$/.test(sellerInfo.calId)) {
+        setError('Please enter a valid 10-digit Cal ID');
         return;
       }
 
@@ -116,14 +116,33 @@ function Profile() {
         return;
       }
 
-      // Update user document
-      await updateDoc(doc(db, 'users', currentUser.uid), {
-        isSeller: true,
-        calId: sellerInfo.calId,
-        phoneNumber: sellerInfo.phoneNumber,
-        notificationsEnabled: sellerInfo.notificationsEnabled,
-        updatedAt: new Date()
-      });
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      
+      // First check if document exists
+      const userDoc = await getDoc(userDocRef);
+      
+      if (!userDoc.exists()) {
+        // Create new user document if it doesn't exist
+        await setDoc(userDocRef, {
+          email: currentUser.email,
+          displayName: currentUser.displayName,
+          isSeller: true,
+          calId: sellerInfo.calId,
+          phoneNumber: sellerInfo.phoneNumber,
+          notificationsEnabled: sellerInfo.notificationsEnabled,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      } else {
+        // Update existing document
+        await updateDoc(userDocRef, {
+          isSeller: true,
+          calId: sellerInfo.calId,
+          phoneNumber: sellerInfo.phoneNumber,
+          notificationsEnabled: sellerInfo.notificationsEnabled,
+          updatedAt: new Date()
+        });
+      }
 
       // If notifications are enabled, request permission
       if (sellerInfo.notificationsEnabled) {
@@ -213,7 +232,11 @@ function Profile() {
                   onChange={(e) => setSellerInfo({ ...sellerInfo, calId: e.target.value })}
                   margin="normal"
                   required
-                  helperText="Enter your 8-digit Cal ID"
+                  helperText="Enter your 10-digit Cal ID"
+                  inputProps={{
+                    maxLength: 10,
+                    pattern: "\\d{10}"
+                  }}
                 />
 
                 <TextField
